@@ -9,94 +9,104 @@ Original file is located at
 
 import streamlit as st
 import requests
+import json
 
-# Define CPIC API URL
-recommendation_view_api_url = "https://api.cpicpgx.org/v1/recommendation_view"
+# Define static parameters
 
-def get_recommendations_for_specific_drug(drug):
-    # Construct API URL with specified drug name
+# CPIC API URLs
+cpic_api_url = "https://api.cpicpgx.org/v1/"
+drug_api_url = cpic_api_url + "drug"
+guideline_api_url = cpic_api_url + "guideline"
+recommendation_view_api_url = cpic_api_url + "recommendation_view"
+
+# Functions that collect information from the user
+
+def get_ethnicity():
+    choices = ['Latino', 'American', 'European', 'Oceanian', 'East Asian',
+               'Near Eastern', 'Central/South Asian', 'Sub-Saharan African',
+               'African American/Afro-Caribbean', 'Other', 'Mixed Ethnicity',
+               'Unknown']
+    ethnicity = st.selectbox("Select Ethnicity", choices)
+    return ethnicity
+
+def get_drug():
+    choices = ['codeine', 'abacavir', 'simvastatin']
+    drug = st.selectbox("Select Drug", choices)
+    return drug
+
+def get_lookup_keys_for_query(drug):
+    lookup_keys_values = get_lookup_keys_for_drug(drug)
+
+    if lookup_keys_values:
+        st.write(f"Available lookup keys for {drug}:")
+        lookup_key = st.selectbox("Select a lookup key", list(lookup_keys_values.keys()))
+
+        lookup_values = lookup_keys_values[lookup_key]
+        st.write(f"Available lookup values for {lookup_key}: {', '.join(lookup_values)}")
+
+        lookup_value = st.selectbox(f"Select a lookup value for {lookup_key}", list(lookup_values))
+
+        return lookup_key, lookup_value
+
+    st.error("Failed to retrieve lookup keys.")
+    return None
+
+def get_lookup_keys_for_drug(drug):
     url = f"{recommendation_view_api_url}?drugname=eq.{drug}"
 
     try:
-        # Make the API request
         response = requests.get(url)
 
-        # Check if the request was successful (status code 200)
         if response.status_code == 200:
-            # Parse and return the JSON data
-            return response.json()
+            data = response.json()
+            lookup_keys_values = {}
+
+            for recommendation in data:
+                lookup_key_values = recommendation.get("lookupkey", {})
+                for key, value in lookup_key_values.items():
+                    if key not in lookup_keys_values:
+                        lookup_keys_values[key] = set()
+                    lookup_keys_values[key].add(value)
+
+            return lookup_keys_values
+
         else:
-            # Print an error message if the request was not successful
             st.error(f"Error: {response.status_code} - {response.text}")
             return None
 
     except requests.exceptions.RequestException as e:
-        # Print an error message if an exception occurs during the request
         st.error(f"Error: {e}")
         return None
 
-def get_recommendation_for_specific_drug_and_lookup(drug, lookup_keys):
-    # Construct API URL with specified drug name and lookup keys
-    lookup_keys_str = ",".join([f"{gene}:{phenotype}" for gene, phenotype in lookup_keys.items()])
-    url = f"{recommendation_view_api_url}?drugname=eq.{drug}&lookupkey=cs.{{{lookup_keys_str}}}"
+def get_recommendation_for_specific_drug(drug, gene, phenotype):
+    url = f"{recommendation_view_api_url}?drugname=eq.{drug}&lookupkey=cs.{{%22{gene}%22:%20%22{phenotype}%22}}"
 
     try:
-        # Make the API request
         response = requests.get(url)
 
-        # Check if the request was successful (status code 200)
         if response.status_code == 200:
-            # Parse and return the JSON data
-            return response.json()
+            st.write("CPIC Recommendations:")
+            st.write(response.json())
+
         else:
-            # Print an error message if the request was not successful
             st.error(f"Error: {response.status_code} - {response.text}")
             return None
 
     except requests.exceptions.RequestException as e:
-        # Print an error message if an exception occurs during the request
         st.error(f"Error: {e}")
         return None
 
-def main():
-    st.title("CPIC Recommendations Viewer")
-
-    # User input for drug name
-    drug = st.text_input("Enter Drug Name:", value="", key="drug")
-
-    if st.button("Fetch Recommendations"):
-        if drug:
-            # Call the function to get recommendations for the specified drug
-            recommendations = get_recommendations_for_specific_drug(drug)
-
-            # Display the recommendations
-            if recommendations:
-                st.subheader("Recommendations for " + drug)
-                st.json(recommendations)
-
-                # Allow the user to enter lookup keys based on the drug
-                st.subheader("Enter Lookup Keys:")
-                lookup_keys = {}
-                for rec in recommendations:
-                    lookup_key = st.text_input(rec["lookupkey"].keys()[0], value="", key=rec["lookupkey"].keys()[0])
-                    lookup_keys.update({rec["lookupkey"].keys()[0]: lookup_key})
-
-                # Display the entered lookup keys
-                st.subheader("Entered Lookup Keys:")
-                st.json(lookup_keys)
-
-                # Fetch and display recommendations based on drug and lookup keys
-                recommendations_based_on_lookup = get_recommendation_for_specific_drug_and_lookup(drug, lookup_keys)
-                if recommendations_based_on_lookup:
-                    st.subheader("Recommendations based on Lookup Keys:")
-                    st.json(recommendations_based_on_lookup)
-                else:
-                    st.error("Failed to retrieve Recommendations based on Lookup Keys.")
-
-            else:
-                st.error("Failed to retrieve Recommendations.")
-        else:
-            st.warning("Please enter a Drug Name.")
-
 if __name__ == "__main__":
-    main()
+    st.title("CPIC Recommendation Viewer")
+
+    # Call the ethnicity function
+    # ethnicity = get_ethnicity()
+    drug = get_drug()
+    gene, phenotype = get_lookup_keys_for_query(drug)
+
+    if gene and phenotype:
+        st.write("Selected Lookup Key:", gene)
+        st.write("Selected Lookup Value:", phenotype)
+
+        # Get recommendations for specific drug
+        get_recommendation_for_specific_drug(drug, gene, phenotype)
