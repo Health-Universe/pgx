@@ -21,10 +21,43 @@ recommendation_view_api_url = cpic_api_url + "recommendation_view"
 
 # Functions for API calls
 
+def get_all_drugs(api_url):
+    try:
+        # Make the API request
+        response = requests.get(api_url)
+
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Parse and extract drug names from the JSON data
+            data = response.json()
+            drug_names = set()
+
+            for recommendation in data:
+                drug_name = recommendation.get("drugname")
+                if drug_name:
+                    drug_names.add(drug_name)
+
+            return list(drug_names)
+
+        else:
+            st.error(f"Error: {response.status_code} - {response.text}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error: {e}")
+        return None
+
 def get_drug():
-    choices = ['codeine', 'abacavir', 'simvastatin']
-    drug = st.selectbox("Select Drug", choices)
-    return drug
+    # Get the list of drugs
+    drugs = get_all_drugs(recommendation_view_api_url)
+
+    # If drugs are available, let the user select from the list
+    if drugs:
+        drug = st.selectbox("Select Drug", drugs)
+        return drug
+    else:
+        st.error("Failed to retrieve the list of drugs.")
+        return None
 
 def get_lookup_keys_for_query(drug):
     lookup_keys_values = get_lookup_keys_for_drug(drug)
@@ -101,10 +134,11 @@ if __name__ == "__main__":
 
     # Get user input
     drug = get_drug()
-    gene, phenotype = get_lookup_keys_for_query(drug)
+    if drug:
+        gene, phenotype = get_lookup_keys_for_query(drug)
 
-    # Display results
-    st.subheader("Recommendation")
-    rec = get_recommendation_for_specific_drug(drug, gene, phenotype)
-    if rec:
-        generate_openai_completion(rec)
+        # Display results
+        st.subheader("Recommendation")
+        rec = get_recommendation_for_specific_drug(drug, gene, phenotype)
+        if rec:
+            generate_openai_completion(rec)
