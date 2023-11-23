@@ -72,7 +72,7 @@ def get_recommendation_for_specific_drug(drug, gene, phenotype):
     try:
         response = requests.get(url)
         if response.status_code == 200:
-            st.write("CPIC Recommendations:")
+            # st.write("CPIC Recommendations:")
             # st.json(response.json())
             return response.json()
         else:
@@ -97,19 +97,14 @@ def generate_openai_completion(input_json):
 
 # Streamlit app
 if __name__ == "__main__":
-    st.title("CPIC API Explorer")
+    st.title("CPIC Recommendations Summarized by OpenAI")
 
     # Get user input
     drug = get_drug()
     gene, phenotype = get_lookup_keys_for_query(drug)
 
     # Display results
-    st.subheader("OpenAI Summary")
+    st.subheader("Recommendation")
     rec = get_recommendation_for_specific_drug(drug, gene, phenotype)
     if rec:
         generate_openai_completion(rec)
-
-    #st.subheader("Original")
-    #if gene and phenotype:
-        # Get recommendations for specific drug
-    #     get_recommendation_for_specific_drug(drug, gene, phenotype)
