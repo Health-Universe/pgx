@@ -9,7 +9,6 @@ Original file is located at
 
 import streamlit as st
 import requests
-import json
 
 # Define static parameters
 
@@ -38,12 +37,9 @@ def get_lookup_keys_for_query(drug):
     lookup_keys_values = get_lookup_keys_for_drug(drug)
 
     if lookup_keys_values:
-        st.write(f"Available lookup keys for {drug}:")
         lookup_key = st.selectbox("Select a lookup key", list(lookup_keys_values.keys()))
 
         lookup_values = lookup_keys_values[lookup_key]
-        st.write(f"Available lookup values for {lookup_key}: {', '.join(lookup_values)}")
-
         lookup_value = st.selectbox(f"Select a lookup value for {lookup_key}", list(lookup_values))
 
         return lookup_key, lookup_value
