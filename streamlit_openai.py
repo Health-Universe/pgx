@@ -11,6 +11,7 @@ import streamlit as st
 from openai import OpenAI
 import requests
 import json
+import os
 
 # CPIC API URLs
 cpic_api_url = "https://api.cpicpgx.org/v1/"
@@ -80,6 +81,7 @@ def get_recommendation_for_specific_drug(drug, gene, phenotype):
         st.error(f"Error: {e}")
 
 def generate_openai_completion(input_json):
+    openai_api_key = os.getenv("openai_api_key")
     client = OpenAI(api_key=openai_api_key)
     prompt = f"You are a pharmacist that must interpret this JSON object that you just received from a CPIC API: {input_json}, please summarize this information back to the consulting physician. Be sure to include the name of the guideline mentioned in the JSON object and a link to the url in case the physician wants more information"
     try:
