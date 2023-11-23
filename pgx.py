@@ -44,16 +44,25 @@ def get_drug_data(drug):
         st.error(f"Error: {e}")
         return None
 
-def get_recommendation_for_drug(drug):
+def get_recommendation_for_specific_drug(drug):
+    # Construct API URL with specified drug name
     url = f"{recommendation_view_api_url}?drugname=eq.{drug}"
+
     try:
+        # Make the API request
         response = requests.get(url)
+
+        # Check if the request was successful (status code 200)
         if response.status_code == 200:
+            # Parse and return the JSON data
             return response.json()
         else:
+            # Print an error message if the request was not successful
             st.error(f"Error: {response.status_code} - {response.text}")
             return None
+
     except requests.exceptions.RequestException as e:
+        # Print an error message if an exception occurs during the request
         st.error(f"Error: {e}")
         return None
 
@@ -82,12 +91,24 @@ def get_guideline_for_specific_drug(drug):
         st.error("Error retrieving guideline data.")
 
 def main():
-    st.title("Recommendation Viewer")
+    st.title("CPIC Recommendation Viewer")
 
+    # User input for drug name
     drug = st.selectbox("Select a drug:", ['codeine', 'abacavir', 'simvastatin'])
 
-    if st.button("Fetch Recommendation(s)"):
-        get_recommendation_for_drug(drug)
+    if st.button("Fetch Recommendations"):
+        if drug:
+            # Call the function to get recommendations data
+            recommendations_data = get_recommendation_for_specific_drug(drug)
+
+            # Display the retrieved recommendations data
+            if recommendations_data:
+                st.subheader("CPIC Recommendations:")
+                st.json(recommendations_data)
+            else:
+                st.warning("No recommendations found.")
+        else:
+            st.warning("Please enter a drug name.")
 
 if __name__ == "__main__":
     main()
