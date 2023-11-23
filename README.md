@@ -2,7 +2,8 @@
 This repository will be used to develop a lightweight, clinical decision support system for pharmacogenomics (PGx). 
 
 # Features
-- Retrieval of all CPIC recommendations for a specific drug & gene pair. Currently only supports three drugs (simvastatin, abacavir, and codeine)
+- Retrieval of CPIC recommendations for a specific drug & gene pair.
+- Supports all drugs referenced in CPIC
 
 # Future ideas and features
 - Support additional drugs
