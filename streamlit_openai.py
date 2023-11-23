@@ -72,7 +72,8 @@ def get_recommendation_for_specific_drug(drug, gene, phenotype):
         response = requests.get(url)
         if response.status_code == 200:
             st.write("CPIC Recommendations:")
-            st.json(response.json())
+            # st.json(response.json())
+            return response.json()
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
