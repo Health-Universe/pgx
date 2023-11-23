@@ -20,28 +20,51 @@ recommendation_view_api_url = cpic_api_url + "recommendation_view"
 
 # Functions for API calls
 
-def get_drug_data(drug):
-    url = f"{drug_api_url}?name=eq.{drug}"
+def get_drug():
+    choices = ['codeine', 'abacavir', 'simvastatin']
+    drug = st.selectbox("Select Drug", choices)
+    return drug
+
+def get_lookup_keys_for_query(drug):
+    lookup_keys_values = get_lookup_keys_for_drug(drug)
+
+    if lookup_keys_values:
+        lookup_key = st.selectbox("Select a lookup key", list(lookup_keys_values.keys()))
+
+        lookup_values = lookup_keys_values[lookup_key]
+        lookup_value = st.selectbox(f"Select a lookup value for {lookup_key}", list(lookup_values))
+
+        return lookup_key, lookup_value
+
+    st.error("Failed to retrieve lookup keys.")
+    return None
+
+def get_lookup_keys_for_drug(drug):
+    url = f"{recommendation_view_api_url}?drugname=eq.{drug}"
+
     try:
         response = requests.get(url)
+
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            lookup_keys_values = {}
+
+            for recommendation in data:
+                lookup_key_values = recommendation.get("lookupkey", {})
+                for key, value in lookup_key_values.items():
+                    if key not in lookup_keys_values:
+                        lookup_keys_values[key] = set()
+                    lookup_keys_values[key].add(value)
+
+            return lookup_keys_values
+
         else:
             st.error(f"Error: {response.status_code} - {response.text}")
             return None
+
     except requests.exceptions.RequestException as e:
         st.error(f"Error: {e}")
         return None
-
-def get_guideline_for_specific_drug(drug):
-    drug_data = get_drug_data(drug)
-    guideline_id = get_guidelineid_from_drug(drug_data)
-    guideline_data = get_guideline(guideline_id)
-    if guideline_data:
-        st.write("Retrieved Guideline Data:")
-        st.write(guideline_data)
-    else:
-        st.error("Error retrieving guideline data.")
 
 def get_recommendation_for_specific_drug(drug, gene, phenotype):
     url = f"{recommendation_view_api_url}?drugname=eq.{drug}&lookupkey=cs.{{%22{gene}%22:%20%22{phenotype}%22}}"
@@ -54,22 +77,6 @@ def get_recommendation_for_specific_drug(drug, gene, phenotype):
             st.error(f"Error: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         st.error(f"Error: {e}")
-
-def get_guidelineid_from_drug(json_data):
-    try:
-        data_list = json_data
-        if data_list and isinstance(data_list, list) and len(data_list) > 0:
-            guideline_id = data_list[0].get("guidelineid")
-            return guideline_id
-        else:
-            st.error("Error: Empty or invalid JSON list.")
-            return None
-    except json.JSONDecodeError as e:
-        st.error(f"Error decoding JSON: {e}")
-        return None
-    except Exception as e:
-        st.error(f"Error: {e}")
-        return None
 
 def generate_openai_completion(input_json):
     client = OpenAI(api_key=userdata.get('openai'))
@@ -90,17 +97,16 @@ if __name__ == "__main__":
     st.title("CPIC API Explorer")
 
     # Get user input
-    drug = st.selectbox("Select a drug", ['codeine', 'abacavir', 'simvastatin'])
+    drug = get_drug()
     gene, phenotype = get_lookup_keys_for_query(drug)
 
     # Display results
-    st.subheader("Guideline Data")
-    get_guideline_for_specific_drug(drug)
-
-    st.subheader("Recommendations")
-    get_recommendation_for_specific_drug(drug, gene, phenotype)
-
     st.subheader("OpenAI Summary")
     rec = get_recommendation_for_specific_drug(drug, gene, phenotype)
     if rec:
         generate_openai_completion(rec)
+
+    #st.subheader("Original")
+    #if gene and phenotype:
+        # Get recommendations for specific drug
+    #     get_recommendation_for_specific_drug(drug, gene, phenotype)
