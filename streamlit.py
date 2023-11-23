@@ -105,8 +105,5 @@ if __name__ == "__main__":
     gene, phenotype = get_lookup_keys_for_query(drug)
 
     if gene and phenotype:
-        st.write("Selected Lookup Key:", gene)
-        st.write("Selected Lookup Value:", phenotype)
-
         # Get recommendations for specific drug
         get_recommendation_for_specific_drug(drug, gene, phenotype)
