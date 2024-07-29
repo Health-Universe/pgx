@@ -1,2 +1,3 @@
 requests
-openAI
+openai==0.28
+streamlit
